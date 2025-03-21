@@ -91,6 +91,7 @@ If you focus on the blue line, you can see how temperature changes over time. - 
 
 
 
+<img width="796" alt="Screen Shot 2025-03-21 at 12 39 56" src="https://github.com/user-attachments/assets/8459510e-ecce-43e0-91be-c44210d7c012" />
 
 
 
