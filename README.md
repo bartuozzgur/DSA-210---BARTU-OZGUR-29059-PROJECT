@@ -9,7 +9,8 @@ This project investigates the relationship between total sales of a local coffee
 The following hypotheses will be tested: 
 
 **H1:** There is a statistically significant correlation between total sales and specific weather conditions (e.g., temperature, precipitation, humidity).
- **H2:** There is a statistically weak correlation between total sales and specific weather conditions.
+
+**H2:** There is a statistically weak correlation between total sales and specific weather conditions.
 
 
 **Contents**  
