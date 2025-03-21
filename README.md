@@ -38,6 +38,8 @@ The coffee shop industry is highly sensitive to external factors, including loca
 
 The dataset for this study will be obtained from a local coffee shop located in Kadıköy, Bağdat Caddesi. The coffee shop has been tracking its sales for the past nine months through a software program that logs order details, including product type and timestamp. Additionally, historical weather data (temperature, humidity, precipitation, wind speed, etc.) will be collected from an open-source weather database (e.g., OpenWeather API, Meteorological Institute records).
 
+
+
 **Data Analysis** 
 
  1. Data Cleaning & Preparation 
@@ -66,7 +68,11 @@ Train a Random Forest Regressor to predict daily sales based on weather features
 
 
 
+
+
 <img width="801" alt="Screen Shot 2025-03-21 at 12 02 56" src="https://github.com/user-attachments/assets/f03bf5f3-8d71-4764-ad75-8ecc93810476" />
+
+
 
 
 
@@ -87,6 +93,9 @@ The humidity level remains relatively stable but increases slightly during winte
 
 How to Read the Graph Efficiently?   
 If you focus on the blue line, you can see how temperature changes over time. - The gray bars indicate the months with higher or lower precipitation, showing rainy periods. - The green dashed line helps understand how humidity correlates with seasonal changes.
+
+
+
 
 
 
