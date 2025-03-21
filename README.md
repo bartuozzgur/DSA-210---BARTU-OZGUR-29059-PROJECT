@@ -66,6 +66,7 @@ Train a Random Forest Regressor to predict daily sales based on weather features
 
 
 
+<img width="801" alt="Screen Shot 2025-03-21 at 12 02 56" src="https://github.com/user-attachments/assets/f03bf5f3-8d71-4764-ad75-8ecc93810476" />
 
 
 
