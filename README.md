@@ -167,5 +167,6 @@ Data Collection
 
  - Additional external factors such as promotions, competitor pricing, or events could be considered in future analyses.
 
-** Data Preparation **
+**Data Preparation**
+
 The daily sales data was collected through the coffee shop’s internal API, which logs total product sales for each day. This data included the date and the number of items sold. To analyze the effect of weather on sales, historical weather data for the same date range was retrieved using the Open-Meteo API. The weather dataset included daily values for average, minimum, and maximum temperature, precipitation, humidity, wind speed, and a categorical sky condition (e.g., clear, cloudy, rainy). The sales and weather data were then merged based on matching dates. During preprocessing, missing values in the weather features were filled using column medians, and missing sky conditions were labeled as "Unknown." Rows without a sales value were excluded from the analysis. The resulting dataset provided a clean and consistent foundation for both statistical testing and model training.
