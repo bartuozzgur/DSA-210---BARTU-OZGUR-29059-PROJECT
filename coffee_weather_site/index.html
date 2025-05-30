@@ -1,0 +1,246 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Coffee‑Shop Sales x Weather - Analysis</title>
+<link href="style.css" rel="stylesheet"/><style>
+.graph-comment, .code-comment{
+  margin:0.5rem 0 2rem;
+  font-style:italic;
+  color:#555;
+  line-height:1.4;
+}
+</style>
+</head>
+<body>
+<header>
+<h1>Coffee‑Shop Sales x Weather</h1>
+</header>
+<main>
+	<p>The daily sales data was collected through the coffee shop’s internal API, which logs total product sales for each day. This data included the date and the number of items sold. To analyze the effect of weather on sales, historical weather data for the same date range was retrieved using the Open-Meteo API.
+
+The weather dataset included daily values for average, minimum, and maximum temperature, precipitation, humidity, wind speed, and a categorical sky condition (e.g., clear, cloudy, rainy). The sales and weather data were then merged based on matching dates.
+
+During preprocessing, missing values in the weather features were filled using column medians, and missing sky conditions were labeled as "Unknown." Rows without a sales value were excluded from the analysis. The resulting dataset provided a clean and consistent foundation for both statistical testing and model training.
+</p>
+</section><section class="code"><pre><code class="language-python"># import pandas as pd, requests
+# sales = pd.read_excel('sales.xlsx', header=None, names=['date', 'total_sales'])
+# sales['date'] = pd.to_datetime(sales['date'])
+
+# lat, lon = 40.987, 29.045
+# start = sales['date'].min().strftime("%Y-%m-%d")
+# end   = sales['date'].max().strftime("%Y-%m-%d")
+
+# url = (
+#     f'https://archive-api.open-meteo.com/v1/archive?latitude={lat}&amp;longitude={lon}'
+#     f'&amp;start_date={start}&amp;end_date={end}'
+#     '&amp;daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,'
+#     'precipitation_sum,relative_humidity_2m_mean,wind_speed_10m_max,weathercode'
+#     '&amp;timezone=Europe%2FIstanbul'
+# )
+# weather = pd.DataFrame(requests.get(url, timeout=30).json()['daily'])
+# weather.rename(columns={'time':'date',
+#                         'temperature_2m_mean':'t_mean',
+#                         'temperature_2m_max':'t_max',
+#                         'temperature_2m_min':'t_min',
+#                         'precipitation_sum':'precip_mm',
+#                         'relative_humidity_2m_mean':'rh_mean',
+#                         'wind_speed_10m_max':'wind_max'}, inplace=True)
+# weather['date'] = pd.to_datetime(weather['date'])
+# code_map = {0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',
+#             51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',56:'Freezing drizzle light',
+#             57:'Freezing drizzle heavy',61:'Light rain',63:'Rain',65:'Heavy rain',
+#             66:'Freezing rain light',67:'Freezing rain heavy',71:'Light snow',73:'Snow',
+#             75:'Heavy snow',77:'Snow grains',80:'Rain showers',81:'Rain showers',
+#             82:'Violent rain showers',85:'Snow showers',86:'Heavy snow showers',
+#             95:'Thunderstorm',96:'Thunderstorm + hail',99:'Thunderstorm + heavy hail'}
+# weather['condition'] = weather['weathercode'].map(code_map)
+# merged = sales.merge(weather, on='date', how='left')
+# merged.to_csv('sales_weather.csv', index=False)</code></pre></section><p class="code-comment">Import sales data and fetch historical weather data via the Open‑Meteo API, formatting everything as daily rows.</p><section class="code"><pre><code class="language-python">import pandas as pd, numpy as np
+import matplotlib.pyplot as plt, seaborn as sns
+
+df = pd.read_csv('sales_weather.csv', parse_dates=['date'])
+df.sort_values('date', inplace=True)
+df.head()</code></pre></section><p class="code-comment">Read the data from the file and sort the days.</p><section class="code"><pre><code class="language-python"># dataset overview
+print('Date span :', df['date'].min(), '→', df['date'].max())
+print('Rows      :', len(df))
+
+# numeric-only summary
+num_cols = df.select_dtypes(include='number').columns
+summary = df[num_cols].describe().T
+summary['missing'] = df[num_cols].isna().sum()
+display(summary)
+
+# missing-value heat-map
+import seaborn as sns, matplotlib.pyplot as plt
+sns.heatmap(df.isna(), cbar=False)
+plt.title('Missing-value pattern')
+plt.show()
+</code></pre></section><p class="code-comment">Print basic dataset informations to understand the dataset better.</p>
+<figure>
+<img alt="Missing-value pattern" src="images/missing_value_pattern.png"/>
+<figcaption>Missing-value pattern</figcaption>
+</figure><p class="graph-comment">This heatmap reveals where data is missing. It seems like there is no need to handle missing values.</p>
+<section class="code"><pre><code class="language-python">plt.figure(figsize=(14,4))
+plt.plot(df['date'], df['total_sales'])
+plt.title('Daily total sales')
+plt.xlabel('Date')
+plt.ylabel('Units')
+plt.show()
+
+sns.scatterplot(x='t_mean', y='total_sales', data=df)
+plt.title('Sales vs mean temperature')
+plt.show()
+
+num_cols = ['total_sales','t_mean','t_max','t_min','precip_mm','rh_mean','wind_max']
+plt.figure(figsize=(7,5))
+sns.heatmap(df[num_cols].corr(), annot=True, fmt='.2f', cmap='vlag')
+plt.title('Correlation matrix')
+plt.show()
+
+order = (df['condition'].value_counts().loc[lambda s: s&gt;=10]).index
+plt.figure(figsize=(10,5))
+sns.boxplot(x='condition', y='total_sales', data=df[df['condition'].isin(order)],
+            order=order)
+plt.xticks(rotation=45, ha='right')
+plt.title('Sales by weather condition')
+plt.show()</code></pre></section><p class="code-comment">Plotting graphs that gives insights about the correlation of weather and sales.</p>
+<figure>
+<img alt="Daily total sales" src="images/daily_total_sales.png"/>
+<figcaption>Daily total sales</figcaption>
+</figure><p class="graph-comment">Daily revenue oscillates with weekday–weekend cycles and shows seasonality around holidays.</p>
+<figure>
+<img alt="Sales vs mean temperature" src="images/sales_vs_mean_temperature.png"/>
+<figcaption>Sales vs mean temperature</figcaption>
+</figure><p class="graph-comment">Sales peak at mild temperatures (around 20 °C) and drop at extremes, hinting that comfortable weather increases customer numbers.</p>
+<figure>
+<img alt="Correlation matrix" src="images/correlation_matrix.png"/>
+<figcaption>Correlation matrix</figcaption>
+</figure><p class="graph-comment">Higher temperatures and wind has the most negative correlation with the total sales.</p>
+<figure>
+<img alt="Sales by weather condition" src="images/sales_by_weather_condition.png"/>
+<figcaption>Sales by weather condition</figcaption>
+</figure><p class="graph-comment">Clear days and mainly clear days pushes the minimum total sales to upward. There is also heavy drizzle day which is also way above average, I think it is because it pushed people to closed areas.</p>
+<section class="code"><pre><code class="language-python">numeric_feats = ['t_mean', 't_max', 't_min',
+                 'precip_mm', 'rh_mean', 'wind_max']
+
+data = df[df['total_sales'].notna()].copy().reset_index(drop=True)
+
+data[numeric_feats] = data[numeric_feats].apply(lambda s: s.fillna(s.median()))
+
+data['condition'] = data['condition'].fillna('Unknown')
+X_cat = pd.get_dummies(data['condition'], prefix='cond')
+
+X = pd.concat([data[numeric_feats], X_cat], axis=1)
+y = data['total_sales']
+
+split_idx        = int(len(data) * 0.8)
+X_train, X_test  = X.iloc[:split_idx].copy(),  X.iloc[split_idx:].copy()
+y_train, y_test  = y.iloc[:split_idx].copy(),  y.iloc[split_idx:].copy()
+
+for _X in (X_train, X_test):
+    _X.fillna(_X.median(), inplace=True)
+    _X.fillna(0, inplace=True)
+
+print("Train rows:", len(X_train), "| Test rows:", len(X_test))
+print("NaNs in X_train?", X_train.isna().any().any(),
+      "| NaNs in y_train?", y_train.isna().any())
+print("NaNs in X_test? ", X_test.isna().any().any(),
+      "| NaNs in y_test? ", y_test.isna().any())</code></pre></section><p class="code-comment">Preparing the data for forecasting.</p><section class="code"><pre><code class="language-python">from math import sqrt
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+linreg = LinearRegression().fit(X_train, y_train)
+rf     = RandomForestRegressor(n_estimators=300, random_state=42).fit(X_train, y_train)
+
+def evaluate(model, name):
+    pred  = model.predict(X_test)
+    mae   = mean_absolute_error(y_test, pred)
+    rmse  = sqrt(mean_squared_error(y_test, pred))
+    print(f"{name:&lt;15}  MAE = {mae:.1f}   RMSE = {rmse:.1f}")
+    return pred
+
+pred_lin = evaluate(linreg, "LinearRegression")
+pred_rf  = evaluate(rf,     "RandomForest")
+</code></pre></section><p class="code-comment">Training and evaluating two models as linear regression and random forest.</p><section class="code"><pre><code class="language-python">dates_test = data['date'].iloc[split_idx:]
+
+plt.figure(figsize=(14,4))
+plt.plot(dates_test, y_test.values, label='Actual')
+plt.plot(dates_test, pred_lin,   label='Linear reg')
+plt.plot(dates_test, pred_rf,    label='Random Forest')
+plt.legend()
+plt.title('Out-of-sample forecasts')
+plt.ylabel('Units')
+plt.show()
+</code></pre></section><p class="code-comment">Plotting the prediction of models on an unseen data.</p>
+<figure>
+<img alt="Out-of-sample forecasts" src="images/out_of_sample_forecasts.png"/>
+<figcaption>Out-of-sample forecasts</figcaption>
+</figure><p class="graph-comment">Even the models can't predict exactly the amount of sales, they both grasped the idea of down times and up times.</p>
+<section class="code"><pre><code class="language-python">importances = (pd.Series(rf.feature_importances_, index=X.columns)
+                 .sort_values(ascending=False).head(15))
+importances.plot(kind='barh')
+plt.gca().invert_yaxis()
+plt.title('Top RF feature importances')
+plt.show()</code></pre></section><p class="code-comment">Extract and visualize the Random Forest’s feature importance scores to understand what the model is learning.</p>
+<figure>
+<img alt="Top RF feature importances" src="images/rf_feature_importances.png"/>
+<figcaption>Top RF feature importances</figcaption>
+</figure><p class="graph-comment">Temperature‑related variables dominate the model, confirming their predictive strength for daily sales.</p>
+<section class="code"><pre><code class="language-python">full_rf = RandomForestRegressor(n_estimators=300, random_state=42).fit(X, y)
+
+def forecast_next_day(t_mean, t_max, t_min, precip_mm, rh_mean, wind_max, condition):
+    base = pd.DataFrame([[t_mean, t_max, t_min, precip_mm, rh_mean, wind_max]],
+                        columns=numeric_feats)
+    cond_oh = pd.DataFrame(np.zeros((1, X_cat.shape[1])), columns=X_cat.columns, dtype=int)
+    col = f'cond_{condition}'
+    if col in cond_oh.columns: cond_oh.loc[0, col] = 1
+    features = pd.concat([base, cond_oh], axis=1)
+    return float(full_rf.predict(features)[0])
+
+# Example
+forecast_next_day(18, 22, 14, 2.5, 65, 18, 'Partly cloudy')</code></pre></section><p class="code-comment">Retrain the Random Forest on the full dataset so it encapsulates all available information before deployment.</p>
+<section class="code"><pre><code class="language-python">
+    from scipy.stats import pearsonr
+
+alpha = 0.05
+weather_cols = ['t_mean', 't_max', 't_min',
+                'precip_mm', 'rh_mean', 'wind_max']
+
+stats = []
+for col in weather_cols:
+    mask = df['total_sales'].notna() & df[col].notna()
+    r, p = pearsonr(df.loc[mask, 'total_sales'], df.loc[mask, col])
+    stats.append({'metric': col, 'r': r, 'p': p,
+                  'decision': 'H1 (significant)' if p < alpha else 'H2 (weak)'})
+
+results = (pd.DataFrame(stats)
+             .sort_values('p')
+             .reset_index(drop=True))
+display(results)
+
+h1 = results.query("p < @alpha")['metric'].tolist()
+h2 = results.query("p >= @alpha")['metric'].tolist()
+
+print("Summary")
+print("-------")
+print("H1 accepted for:", ", ".join(h1) or "none")
+print("H2 accepted for:", ", ".join(h2) or "none")
+
+</code></pre></section>
+<p class="code-comment">Calculating the p-values.</p>
+<img alt="p-values" src="images/p_values.png"/>
+<p>
+    The Pearson-based check shows that total sales move meaningfully with most of the weather variables we tracked: stronger winds, lower minimum/mean/maximum temperatures, and higher daily precipitation all coincide with noticeably lower sales, and the very small p-values (< 0.05) let us reject the null of no correlation for each of them, so H1 stands for those factors. Relative humidity, by contrast, produces only a tiny, statistically weak positive r and a high p-value (≈0.19), so we cannot rule out pure chance there; H2 therefore applies to humidity. In short, sales appear sensitive to wind, temperature and rain but not to how damp the air feels.
+</p>
+<p>The analysis shows a clear link between weather conditions and daily sales, with temperature and precipitation influencing customer behavior. However, weather alone doesn't fully explain sales patterns—factors like holidays, promotions, and weekday effects also play a significant role.
+
+As a result, the models were able to capture general trends but not exact sales figures.</p>
+</main>
+<footer>
+</footer>
+</body>
+</html>
